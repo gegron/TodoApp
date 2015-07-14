@@ -1,6 +1,5 @@
 package fr.xebia.hello.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fakemongo.Fongo;
 import fr.xebia.hello.database.TodoPersistedMongoClient;
 import fr.xebia.hello.domain.Todo;
@@ -8,6 +7,9 @@ import fr.xebia.hello.domain.TodoRepository;
 import org.eclipse.jetty.http.HttpStatus;
 import org.jongo.Jongo;
 
+import static fr.xebia.hello.domain.Todo.createTodo;
+import static fr.xebia.hello.util.JsonUtils.getJsonReader;
+import static fr.xebia.hello.util.JsonUtils.toJson;
 import static spark.Spark.*;
 import static spark.SparkBase.staticFileLocation;
 
@@ -52,14 +54,12 @@ public class TodoApp implements Runnable {
             System.out.println("Retrieve todo list");
 
             res.type("application/json");
-            return new ObjectMapper().writeValueAsString(todoRepository.findAll());
+            return toJson(todoRepository.findAll());
         });
 
         post("/todos",
                 (req, res) -> {
-                    ObjectMapper mapper = new ObjectMapper();
-
-                    Todo todo = Todo.createTodo(mapper.readValue(req.body(), Todo.class).getTask());
+                    Todo todo = createTodo(getJsonReader(Todo.class).<Todo>readValue(req.body()).getTask());
 
                     if (!todo.isValid()) {
                         res.status(HttpStatus.BAD_REQUEST_400);
@@ -70,7 +70,7 @@ public class TodoApp implements Runnable {
 
                     res.status(HttpStatus.OK_200);
                     res.type("application/json");
-                    return new ObjectMapper().writeValueAsString(resultTodo);
+                    return toJson(resultTodo);
                 });
 
         delete("/todos/:id",
